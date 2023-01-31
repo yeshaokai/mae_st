@@ -50,6 +50,9 @@ def get_start_end_idx(video_size, clip_size, clip_idx, num_clips, use_offset=Fal
         start_idx (int): the start frame index.
         end_idx (int): the end frame index.
     """
+
+    # if video size is smaller than clip size, delta is 0
+    # otherwise, delta seems to act as a starting point of the sampling
     delta = max(video_size - clip_size, 0)
     if clip_idx == -1:
         # Random temporal sampling.
@@ -110,6 +113,7 @@ def decode(
         # Convert the bytes to a tensor.
         video_tensor = torch.from_numpy(np.frombuffer(container, dtype=np.uint8))
 
+        
         decode_all_video = True
         video_start_pts, video_end_pts = 0, -1
         # The video_meta is empty, fetch the meta data from the raw video.
@@ -131,15 +135,20 @@ def decode(
             video_meta["audio_sample_rate"] = meta.audio_sample_rate
 
         fps = video_meta["video_fps"]
+
         if not rigid_decode_all_video:
+
             if (
                 video_meta["has_video"]
                 and video_meta["video_denominator"] > 0
                 and video_meta["video_duration"] > 0
             ):
+
                 # try selective decoding.
                 decode_all_video = False
                 clip_size = sampling_rate * num_frames / target_fps * fps
+
+
                 start_idx, end_idx = get_start_end_idx(
                     fps * video_meta["video_duration"],
                     clip_size,
@@ -147,10 +156,12 @@ def decode(
                     num_clips,
                     use_offset=use_offset,
                 )
+
                 # Convert frame index to pts.
                 pts_per_frame = video_meta["video_denominator"] / fps
                 video_start_pts = int(start_idx * pts_per_frame)
                 video_end_pts = int(end_idx * pts_per_frame)
+
 
         # Decode the raw video with the tv decoder.
         v_frames, _ = io._read_video_from_memory(
@@ -165,6 +176,7 @@ def decode(
             video_timebase_denominator=video_meta["video_denominator"],
         )
 
+        
         if v_frames.shape == torch.Size([0]):
             # failed selective decoding
             decode_all_video = True

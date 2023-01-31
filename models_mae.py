@@ -52,6 +52,7 @@ class MaskedAutoencoderViT(nn.Module):
         self.pred_t_dim = pred_t_dim
         self.t_pred_patch_size = t_patch_size * pred_t_dim // num_frames
 
+        
         self.patch_embed = patch_embed(
             img_size,
             patch_size,

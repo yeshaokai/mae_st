@@ -205,7 +205,8 @@ def get_args_parser():
 
 
 def main(args):
-    misc.init_distributed_mode(args)
+    # no distribution
+    #misc.init_distributed_mode(args)
 
     print("job dir: {}".format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(", ", ",\n"))
@@ -221,11 +222,13 @@ def main(args):
 
     dataset_train = Kinetics(
         mode="pretrain",
+        num_clips = 1,
         path_to_data_dir=args.path_to_data_dir,
         sampling_rate=args.sampling_rate,
         num_frames=args.num_frames,
         train_jitter_scales=(256, 320),
         repeat_aug=args.repeat_aug,
+        num_retries = 20,
         jitter_aspect_relative=args.jitter_aspect_relative,
         jitter_scales_relative=args.jitter_scales_relative,
     )
@@ -250,6 +253,7 @@ def main(args):
     else:
         log_writer = None
 
+        
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train,
         sampler=sampler_train,
@@ -258,6 +262,8 @@ def main(args):
         pin_memory=args.pin_mem,
         drop_last=True,
     )
+
+    print (len(data_loader_train))
 
     # define the model
     model = models_mae.__dict__[args.model](

@@ -35,13 +35,14 @@ class Kinetics(torch.utils.data.Dataset):
         # decoding setting
         sampling_rate=4,
         num_frames=16,
+        num_clips = 1,
         target_fps=30,
         # train aug settings
         train_jitter_scales=(256, 320),
         train_crop_size=224,
         train_random_horizontal_flip=True,
         # test setting, multi crops
-        test_num_ensemble_views=10,
+        test_num_ensemble_views=1,
         test_num_spatial_crops=3,
         test_crop_size=256,
         # norm setting
@@ -135,7 +136,7 @@ class Kinetics(torch.utils.data.Dataset):
         # video. For every clip, NUM_SPATIAL_CROPS is cropped spatially from
         # the frames.
         if self.mode in ["pretrain", "finetune", "val"]:
-            self._num_clips = 1
+            self._num_clips = num_clips
         elif self.mode in ["test"]:
             self._num_clips = test_num_ensemble_views * test_num_spatial_crops
 
@@ -250,17 +251,21 @@ class Kinetics(torch.utils.data.Dataset):
                 )
             # Select a random video if the current video was not able to access.
             if video_container is None:
+                '''
                 print(
                     "Failed to meta load video idx {} from {}; trial {}".format(
                         index, self._path_to_videos[index], i_try
                     )
                 )
+                '''
                 if self.mode not in ["test"] and i_try > self._num_retries // 2:
                     # let's try another one
                     index = random.randint(0, len(self._path_to_videos) - 1)
                 continue
 
             # Decode video. Meta info is used to perform selective decoding.
+            
+            
             frames, fps, decode_all_video = decoder.decode(
                 video_container,
                 sampling_rate,
@@ -274,14 +279,17 @@ class Kinetics(torch.utils.data.Dataset):
                 rigid_decode_all_video=self.mode in ["pretrain"],
             )
 
+            
             # If decoding failed (wrong format, video is too short, and etc),
             # select another video.
             if frames is None:
+                '''
                 print(
                     "Failed to decode video idx {} from {}; trial {}".format(
                         index, self._path_to_videos[index], i_try
                     )
                 )
+                '''
                 if self.mode not in ["test"] and i_try > self._num_retries // 2:
                     # let's try another one
                     index = random.randint(0, len(self._path_to_videos) - 1)
@@ -290,6 +298,7 @@ class Kinetics(torch.utils.data.Dataset):
             frames_list = []
             label_list = []
             label = self._labels[index]
+
             if self.rand_aug:
                 for i in range(self._repeat_aug):
                     clip_sz = sampling_rate * self._num_frames / self._target_fps * fps
@@ -329,6 +338,8 @@ class Kinetics(torch.utils.data.Dataset):
                         frames, start_idx, end_idx, self._num_frames
                     )
 
+
+
                     new_frames = utils.tensor_normalize(
                         new_frames, self._mean, self._std
                     )
@@ -365,6 +376,7 @@ class Kinetics(torch.utils.data.Dataset):
                     label_list.append(label)
             frames = torch.stack(frames_list, dim=0)
 
+            
             if self.mode in ["test"]:
                 return frames, torch.tensor(label_list), index
             else:

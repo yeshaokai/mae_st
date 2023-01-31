@@ -20,7 +20,7 @@ import mae_st.util.logging as logging
 import psutil
 import torch
 import torch.distributed as dist
-import torch.fb.rendezvous.zeus
+#import torch.fb.rendezvous.zeus
 from iopath.common.file_io import g_pathmgr as pathmgr
 from mae_st.util.logging import master_print as print
 from torch._six import inf
@@ -389,7 +389,8 @@ def load_model(args, model_without_ddp, optimizer, loss_scaler):
         else:
             with pathmgr.open(args.resume, "rb") as f:
                 checkpoint = torch.load(f, map_location="cpu")
-        model_without_ddp.load_state_dict(checkpoint["model"])
+        #model_without_ddp.load_state_dict(checkpoint["model"])
+        model_without_ddp.load_state_dict(checkpoint["model_state"], strict = False)
         print("Resume checkpoint %s" % args.resume)
         if (
             "optimizer" in checkpoint
